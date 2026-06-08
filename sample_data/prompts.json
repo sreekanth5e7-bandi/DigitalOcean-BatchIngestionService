@@ -1,0 +1,9 @@
+{
+  "prompts": [
+    {"id": "p001", "prompt": "Summarize the theory of relativity in one paragraph."},
+    {"id": "p002", "prompt": "Write a haiku about distributed systems."},
+    {"id": "p003", "prompt": "Explain what a semaphore does in concurrent programming."},
+    {"id": "p004", "prompt": "List three benefits of exponential backoff."},
+    {"id": "p005", "prompt": "What is the CAP theorem?"}
+  ]
+}

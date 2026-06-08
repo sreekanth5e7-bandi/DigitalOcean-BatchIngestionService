@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: batch-ingestion
+  datasource:
+    url: jdbc:h2:file:./data/batches;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+server:
+  port: 8080
+
+batch:
+  worker-pool-size: 10
+  max-retries: 5
+  initial-backoff-ms: 500
+  max-backoff-ms: 30000
+  mock-api-url: http://localhost:8080/mock/infer
+  results-dir: data/results
