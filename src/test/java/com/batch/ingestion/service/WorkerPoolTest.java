@@ -46,7 +46,12 @@ class WorkerPoolTest {
         item -> {
           int current = concurrent.incrementAndGet();
           maxConcurrent.updateAndGet(max -> Math.max(max, current));
-          Thread.sleep(50);
+          try {
+            Thread.sleep(50);
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+          }
           concurrent.decrementAndGet();
           return new InferenceResult(item.getId(), item.getPrompt(), "ok", 0);
         },

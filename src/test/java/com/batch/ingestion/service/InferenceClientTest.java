@@ -36,9 +36,9 @@ class InferenceClientTest {
     properties.setInitialBackoffMs(1);
     properties.setMaxBackoffMs(10);
 
-    RestClient restClient = RestClient.builder().build();
-    mockServer = MockRestServiceServer.bindTo(restClient).build();
-    client = new InferenceClient(properties, restClient);
+    RestClient.Builder restClientBuilder = RestClient.builder();
+    mockServer = MockRestServiceServer.bindTo(restClientBuilder).build();
+    client = new InferenceClient(properties, restClientBuilder.build());
   }
 
   @Test

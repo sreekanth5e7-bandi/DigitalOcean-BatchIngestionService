@@ -6,6 +6,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ public class InferenceClient {
   private final RestClient restClient;
   private final BatchProperties properties;
 
+  @Autowired
   public InferenceClient(BatchProperties properties) {
     this.properties = properties;
     this.restClient = RestClient.create();
