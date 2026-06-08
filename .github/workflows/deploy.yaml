@@ -1,0 +1,70 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: maven
+
+      - name: Build and test
+        run: mvn -B verify
+
+      - name: Package application
+        run: mvn -B -DskipTests package
+
+      - name: Configure SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload JAR to server
+        run: |
+          scp -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
+            target/batch-ingestion-1.0.0.jar \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ vars.DEPLOY_JAR_PATH || '/opt/batch-ingestion/app/batch-ingestion.jar' }}.new"
+
+      - name: Activate release and restart service
+        run: |
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" <<'REMOTE'
+          set -euo pipefail
+          JAR_PATH="${{ vars.DEPLOY_JAR_PATH || '/opt/batch-ingestion/app/batch-ingestion.jar' }}"
+          SERVICE_NAME="${{ vars.DEPLOY_SERVICE_NAME || 'batch-ingestion' }}"
+
+          install -d -o batchapp -g batchapp "$(dirname "$JAR_PATH")"
+          mv "${JAR_PATH}.new" "$JAR_PATH"
+          chown batchapp:batchapp "$JAR_PATH"
+          chmod 644 "$JAR_PATH"
+
+          systemctl daemon-reload
+          systemctl restart "$SERVICE_NAME"
+          systemctl is-active --quiet "$SERVICE_NAME"
+          echo "Deploy successful: $JAR_PATH"
+          REMOTE
+
+      - name: Health check
+        run: |
+          PORT="${{ vars.DEPLOY_HEALTH_PORT || '8080' }}"
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "for i in \$(seq 1 12); do curl -fsS http://127.0.0.1:${PORT}/health && exit 0; sleep 5; done; exit 1"
